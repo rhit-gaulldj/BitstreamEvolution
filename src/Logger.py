@@ -112,6 +112,7 @@ class Logger:
         open("workspace/violinlivedata.log", "w").close()
         open("workspace/heatmaplivedata.log", "w").close()
         open("workspace/pulselivedata.log", "w").close()
+        open("workspace/randomizationdata.log", "w").close()
 
         # Determine if we need to the to initialize the analysis and
         # if so, do so.
