@@ -42,6 +42,8 @@ void setup(){
     // digitalWrite(2, HIGH); 
 
     // can be changed from RISING to FALLING or CHANGE
+    // EIFR = bit (INTF0);
+    // EIFR = bit (INTF1);
     attachInterrupt(digitalPinToInterrupt(interrupt),pulseCounter, RISING); 
 }
 
@@ -81,7 +83,11 @@ void loop(){
 
         // Check to see if this is actually one second
         delay(1000);
-        Serial.println(pulseCount);
+        if (pulseCount > 0) {
+          Serial.println(pulseCount);
+        } else {
+          Serial.println(0);
+        }
         // Serial.print("FINISHED\nFINISHED\nFINISHED\n");  // currently breaks measure_pulses()
         delay(10); //3016/1508 Delay to load the FPGA
       }

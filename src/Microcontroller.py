@@ -21,8 +21,9 @@ class Microcontroller:
         if config.get_simulation_mode() == "FULLY_INTRINSIC":
             self.__log_event(1, "MCU SETTINGS ================================", config.get_usb_path(), config.get_serial_baud())
             self.__serial =  Serial(
-                config.get_usb_path(),
-                config.get_serial_baud(),
+                port=config.get_usb_path(),
+                baudrate=config.get_serial_baud(),
+                timeout=config.get_mcu_read_timeout()
             )
             self.__serial.dtr = False
 
