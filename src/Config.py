@@ -434,6 +434,12 @@ class Config:
 		valid_vals = ["RANDOM", "CLONE_SEED", "CLONE_SEED_MUTATE", "EXISTING_POPULATION"]
 		self.check_valid_value("init mode", input, valid_vals)
 		return input
+
+	def get_seed_filepath(self):
+		try:
+			return Path(self.get_init_parameters("SEED_FILE_PATH"))
+		except NoOptionError:
+			self.__log_error(1, "Invalid file path " + self.get_init_parameters("SEED_FILE_PATH") + " for seed file.")
 	
 	def get_randomization_type(self):
 		input = self.get_init_parameters("RANDOMIZE_UNTIL")
@@ -781,6 +787,7 @@ class Config:
 		self.get_randomization_type()
 		self.get_randomize_threshold()
 		self.get_randomize_mode()
+		self.get_seed_filepath()
 
 	def validate_stopping_params(self):
 		self.using_n_generations()

@@ -32,12 +32,6 @@ RANDOMIZE_UNTIL not set in config.ini, continuing without randomization'''
 INVALID_VARIANCE_ERR_MSG = '''\
 VARIANCE_THRESHOLD <= 0 as set in config.ini, continuing without randomization'''
 
-# SEED_HARDWARE is the hardware file used as an initial template for the Circuits
-# NOTE The Seed file is provided as a way to kickstart the evolutionary process
-# without having to perform a time-consuming random search for a seedable circuit.
-# Contact repository authors if you're interested in a new seed file.
-SEED_HARDWARE_FILEPATH = Path("data/seed-hardware.asc")
-
 # The basename (filename without path or extensions) of the Circuit
 # hardware, bitstream, and data files.
 CIRCUIT_FILE_BASENAME = "hardware"
@@ -266,11 +260,12 @@ class CircuitPopulation:
 
         # if we're using custom i/o pin configurations
         # need to configure to io tiles of the seed circuit
-        template = SEED_HARDWARE_FILEPATH
+        seed_filepath = self.__config.get_seed_filepath()
+        template = seed_filepath
         if self.__config.get_using_configurable_io():
             template = "workspace/template/seed.asc"
             template_builder = ascTemplateBuilder(self.__config, self.__logger)
-            template_builder.configure_seed_io(SEED_HARDWARE_FILEPATH, template)
+            template_builder.configure_seed_io(seed_filepath, template)
 
         for index in range(1, self.__config.get_population_size() + 1):
             file_name = "hardware" + str(index)
