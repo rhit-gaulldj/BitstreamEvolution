@@ -102,7 +102,6 @@ class Circuit:
         self.__logger = logger
         self.__rand = rand
         self.__fitness = 0
-        self.__mean_voltage = 0 #needed for combined fitness func
         self.__pulses = 0 # Used to get pulses counted outside of circuit
         self.__data = [] # Used when taking multiple samples in a single generation. Stores the fitnesses
 
@@ -310,7 +309,7 @@ class Circuit:
         """
         return self.__hardware_filepath
 
-    def calculate_fitness_from_data(self):
+    def calculate_fitness_from_data(self, is_consistency=(self.__config.get_fitness_func() == "PULSE_CONSISTENCY")):
         """
         Calculates the fitness of this circuit from stored samples in self.__data
         If performing multi-sample/pass pulse function, then takes the product of fitnesses.
@@ -369,14 +368,14 @@ class Circuit:
     # def evaluate(self):
     #     return 
     
-    def evaluate_sim(self, is_combined):
+    def evaluate_sim(self, is_multi_objective):
         """
         Just evaluate the simulation bitstream (use sine function combinations, with variance formula)
         
         Parameters
         ----------
-        is_combined : bool
-            True if evaluating combined fitness, False if evaluating varience fitness
+        is_multi_objective : bool
+            True if evaluating multi_objective fitness, False if evaluating varience fitness
 
         Returns
         -------
@@ -406,8 +405,8 @@ class Circuit:
             # Taking the average keeps it within the drawable range
             waveform.append(sum / len(sine_funcs))
         
-        if is_combined:
-            fitness = self.__measure_combined_fitness(waveform)
+        if is_multi_objective:
+            fitness = self.evaluate_multi_objective()
         else:
             fitness = self.__measure_variance_fitness(waveform)
 
@@ -520,7 +519,7 @@ class Circuit:
 
         return fitness
 
-    def evaluate_pulse_count(self, record_data = False):
+    def evaluate_pulse_count(self, record_data = False, is_tolerant=self.__is_tolerant_pulse_count()):
         """
         Upload and run this circuit and count the number of pulses it
         generates.
@@ -550,7 +549,7 @@ class Circuit:
             elapsed
         )
 
-        measure_result = self.__measure_pulse_fitness(record_data = record_data)
+        measure_result = self.__measure_pulse_fitness(record_data = record_data, is_tolerant)
 
         if record_data:
             # We will update all live data when all samples have been taken
@@ -561,9 +560,9 @@ class Circuit:
         # This is either the fitness or the list of pulses counted
         return measure_result
 
-    def evaluate_combined(self, record_data = False):
+    def evaluate_multi_objective(self, record_data = False):
         """
-        Upload and run this circuit and take a combined measure of fitness
+        Upload and run this circuit and take a multi-objective measure of fitness
 
         Parameters
         ----------
@@ -573,20 +572,21 @@ class Circuit:
         Returns
         -------
         float
-            Fitness of the combined fitness.
+            Fitness of the multi-objective fitness.
         """
-        start = time()
-        self.__run()
-        self.__microcontroller.measure_signal(self)
+        # Compute each fitness
+        fitness1 = self.get_fitness_from_func(self.__config.get_mo_fitness_func_1())
+        fitness2 = self.get_fitness_from_func(self.__config.get_mo_fitness_func_2())
 
-        elapsed = time() - start
-        self.__log_event(1,
-            "TIME TAKEN RUNNING AND LOGGING ---------------------- ",
-            elapsed
-        )
+        # Get each weight
+        weight1 = self.__config.get_mo_fitness_1_weight()
+        weight2 = self.__config.get_mo_fitness_2_weight()
 
-        waveform = self.__read_variance_data()
-        fitness = self.__measure_combined_fitness(waveform)
+        # Combine the readings
+        if self.__config.get_multi_objective_mode() == "ADD":
+            fitness = (weight1 * fitness1) + (weight2 * fitness2)
+        else:
+            fitness = (fitness1 ** weight1) * (fitness2 ** weight2)
         
         if record_data:
             # We will update all live data when all samples have been taken
@@ -595,6 +595,30 @@ class Circuit:
             self.__update_all_live_data()
 
         return fitness
+
+    def get_fitness_from_func(self, function):
+        valid_vals = ["VARIANCE", "PULSE_COUNT", "TOLERANT_PULSE_COUNT", "SENSITIVE_PULSE_COUNT", "PULSE_CONSISTENCY", "TONE_DISCRIMINATOR"]
+        match function:
+            case "VARIANCE":
+                return evaluate_variance()
+
+            case "PULSE_COUNT":
+                return evaluate_pulse_count(is_tolerant=False)
+
+            case "TOLERANT_PULSE_COUNT":
+                return evaluate_pulse_count(is_tolerant=True)
+
+            case "SENSITIVE_PULSE_COUNT":
+                return evaluate_pulse_count(is_tolerant=False)
+
+            case "PULSE_CONSISTENCY":
+                return evaluate_pulse_count(is_tolerant=False)
+
+            case "TONE_DISCRIMINATOR":
+                return evaluate_tonedisc()
+
+        return False
+
 
     def measure_mean_voltage(self):
         """
@@ -628,7 +652,7 @@ class Circuit:
             RUN_CMD,
             self.__bitstream_filepath,
             "-d",
-            self.__microcontroller.get_fpga()
+            self.__microcontroller.get_fpga(),
         ]
         print(cmd_str)
         run(cmd_str)
@@ -812,7 +836,6 @@ class Circuit:
 
         var_max_fitness = variance_sum / total_samples
         self.__fitness = var_max_fitness
-        self.__mean_voltage = sum(waveform) / len(waveform) #used by combined fitness func
 
         return self.__fitness
     
@@ -879,8 +902,6 @@ class Circuit:
             self.__log_event(1,
             "State 0 Average = ",
             stateZeroAve, " --- State 0 Count = ", stateZeroCount, " ----- State 1 Average = ", stateOneAve)
-        
-        self.__mean_voltage = sum(waveform) / len(waveform) #used by combined fitness func
 
         return self.__fitness
 
@@ -896,7 +917,7 @@ class Circuit:
         return self.__config.get_fitness_func() == 'TOLERANT_PULSE_COUNT'
 
     # NOTE Using log files instead of a data buffer in the event of premature termination
-    def __measure_pulse_fitness(self, record_data = False):
+    def __measure_pulse_fitness(self, record_data = False, is_tolerant=self.__is_tolerant_pulse_count()):
         """
         Measures the fitness of this circuit using the pulse-count
         fitness function
@@ -948,11 +969,11 @@ class Circuit:
         if len(pulse_counts) == 0:
             self.__log_event(2, "NULL DATA FILE. ZEROIZING")
 
-        self.__fitness = self.__calc_pulse_fitness(pulse_count)
+        self.__fitness = self.__calc_pulse_fitness(pulse_count, is_tolerant)
         
         return self.__fitness
 
-    def __calc_pulse_fitness(self, pulses):
+    def __calc_pulse_fitness(self, pulses, is_tolerant=self.__is_tolerant_pulse_count()):
         """
         Returns the fitness, based on the config's fitness function, for the specified number of pulses
 
@@ -968,7 +989,7 @@ class Circuit:
         """
         desired_freq = self.__config.get_desired_frequency()
         fitness = 0
-        if self.__is_tolerant_pulse_count():
+        if is_tolerant:
             # Build a normal-ish distribution function where the "mean" is desired_freq,
             # and the "standard deviation" is of our choosing (here we select 0.025*freq)
             deviation = 0.025 * desired_freq # 25 for 1,000 Hz, 250 for 10,000 Hz
@@ -988,49 +1009,6 @@ class Circuit:
             # Give fitness bonus for getting above 0 pulses
             fitness = fitness + 1
         return fitness
-
-    def __measure_combined_fitness(self, waveform):
-        """
-        Calculates the circuit's fitness based on a combination of it's pulse count and variance
-
-        Parameters
-        ----------
-        waveform : list[int]
-            Waveform of the run. Each entry is a normalized voltage reading
-
-        Returns
-        -------
-        float
-            Fitness of the combined fitness function
-        """
-
-        # need to evaluate var fitness first since it calculates the mean voltage
-        varFitness = self.__measure_variance_fitness(waveform)
-        varWeight = self.__config.get_var_weight()
-
-        # Using the different between average and threshhold voltage since pulse count is normally 0
-        # pulseFitness = self.__measure_pulse_fitness()
-        # Add 1 to it so that it is a whole number, and raising to a power will increase the value
-        #pulseFitness = 1 / (abs(self.__mean_voltage - 341) + 1) + 1
-        # Issue with old approach is graph was mostly a straight line with a spike at the target voltage
-        # We've changed to a somewhat normal distribution-like function to provide better encouragement
-        # Constants:
-        # The 341 is the target threshold voltage
-        # The 200 is used as a sort of "standard deviation"-esque variable. Raising it widens the graph
-        pulseFitness = 10 * math.exp(-0.5 * math.pow((self.__mean_voltage - 341) / 200, 2))
-        pulseWeight = self.__config.get_pulse_weight()
-
-        self.__log_event(4, "Pulse Fitness: ", pulseFitness)
-        self.__log_event(4, "Variance Fitness: ", varFitness)
-
-        if self.__config.get_combined_mode() == "ADD":
-            self.__fitness = (pulseWeight * pulseFitness) + (varWeight * varFitness)
-        else: #MULT
-            self.__fitness = pow(pulseFitness, pulseWeight) * pow(varFitness, varWeight)
-
-        self.__log_event(3, "Combined Fitness: ", self.__fitness)
-        
-        return self.__fitness
  
     def __measure_mean_voltage(self, waveform):
         """

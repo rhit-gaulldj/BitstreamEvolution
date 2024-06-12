@@ -82,6 +82,23 @@ class Config:
 			The value of the parameter
 		"""
 		return self.__config_parser.get("FITNESS PARAMETERS", param)
+
+	def get_multi_objective_parameters(self, param):
+		"""
+		Returns the value of a parameter from the "MULTI-OBJECTIVE PARAMETERS"
+		section of the config file.
+
+		Parameters
+		----------
+		param : str
+			The name of the parameter to return
+
+		Returns
+		-------
+		str
+			The value of the parameter
+		"""
+		return self.__config_parser.get("MULTI-OBJECTIVE PARAMETERS", param)
 	
 	def get_ga_parameters(self, param):
 		"""
@@ -276,7 +293,7 @@ class Config:
 		input = self.get_fitness_parameters("FITNESS_FUNC")
 		# We're leaving "PULSE_COUNT" for backwards-compatibility
 		# It will use the sensitive function
-		valid_vals = ["VARIANCE", "PULSE_COUNT", "TOLERANT_PULSE_COUNT", "SENSITIVE_PULSE_COUNT", "COMBINED", "PULSE_CONSISTENCY", "TONE_DISCRIMINATOR"]
+		valid_vals = ["VARIANCE", "PULSE_COUNT", "TOLERANT_PULSE_COUNT", "SENSITIVE_PULSE_COUNT", "MULTI_OBJECTIVE", "PULSE_CONSISTENCY", "TONE_DISCRIMINATOR"]
 		self.check_valid_value("fitness function", input, valid_vals)
 		return input
 	
@@ -297,9 +314,9 @@ class Config:
 			exit()
 		return desiredFreq
 	
-	def get_combined_mode(self):
+	def get_multi_objective_mode(self):
 		"""
-		Selects the current Combined Mode Evolution will be using. 
+		Selects the current Multi-Objective Mode Evolution will be using. 
 		These modes are listed below.
 		We verify that only one of the following modes can be returned.
 
@@ -313,36 +330,100 @@ class Config:
         Returns
         -------
         str
-           The config's selected combined mode from the list of possible modes.
+           The config's selected  mode from the list of possible modes.
 		"""
-		input = self.get_fitness_parameters("COMBINED_MODE")
+		input = self.get_multi_objective_parameters("MULTI_OBJECTIVE_MODE")
 		valid_vals = ["ADD", "MULT"]
-		self.check_valid_value("combined mode", input, valid_vals)
+		self.check_valid_value("multi-objective mode", input, valid_vals)
+		return input
+
+	def get_mo_fitness_func_1(self):
+		"""
+		Selects one of the Fitness Function Evolution will be using in the multi-objective mode. These modes are listed below
+		We verify that only one of the following modes can be returned.
+
+		**VARIANCE**
+			Variance maximization fitness function. The fitness is the absolute difference
+			of voltage readings from consecutive time steps. Selects for Noise.
+		**PULSE_COUNT**
+			Left in for backwards-compatability. Refers to SENSITIVE_PULSE_COUNT.
+		**TOLERANT_PULSE_COUNT**
+			This uses the number of pulses to generate a fitness. To do this, it compares
+			the calculated frequency from the number of pulses in a second to the target frequency.
+			The closer to the target, the higher the fitness. This fitness function is more 'tolerant'
+			of errors, meaning it assigns greater fitness values to circuits that only have slight errors.
+		**SENSITIVE_PULSE_COUNT**
+			This uses the number of pulses to generate a fitness. To do this, it compares
+			the calculated frequency from the number of pulses in a second to the target frequency.
+			The closer to the target, the higher the fitness. This fitness function is more 'sensitive'
+			of errors, meaning it has an abrupt drop-off in fitness scores even for slight errors.
+
+        Returns
+        -------
+        str
+           The config's selected fitness function from the list of possible modes.
+		"""
+		input = self.get_multi_objective_parameters("FITNESS_FUNC_1")
+		# We're leaving "PULSE_COUNT" for backwards-compatibility
+		# It will use the sensitive function
+		valid_vals = ["VARIANCE", "PULSE_COUNT", "TOLERANT_PULSE_COUNT", "SENSITIVE_PULSE_COUNT", "PULSE_CONSISTENCY", "TONE_DISCRIMINATOR"]
+		self.check_valid_value("multi-objective fitness function 1", input, valid_vals)
 		return input
 	
-	def get_pulse_weight(self):
+	def get_mo_fitness_1_weight(self):
 		"""
-		This returns the pulse weight from the config file. 
-		This is the pulse weight used in the combined_mode operation specified previously.
+		This returns the weight to use for the first multi-objective fitness function from the config file. 
 
 		Returns
 		-------
 		float
-			The pulse weight.
+			The first multi-objective fitness function weight.
 		"""
-		return float(self.get_fitness_parameters("PULSE_WEIGHT"))
+		return float(self.get_multi_objective_parameters("FITNESS_1_WEIGHT"))
 
-	def get_var_weight(self):
+	def get_mo_fitness_func_2(self):
 		"""
-		This returns the variability weight from the config file. 
-		This is the variability weight used in the combined_mode operation specified previously.
+		Selects one of the Fitness Function Evolution will be using in the multi-objective mode. These modes are listed below
+		We verify that only one of the following modes can be returned.
+
+		**VARIANCE**
+			Variance maximization fitness function. The fitness is the absolute difference
+			of voltage readings from consecutive time steps. Selects for Noise.
+		**PULSE_COUNT**
+			Left in for backwards-compatability. Refers to SENSITIVE_PULSE_COUNT.
+		**TOLERANT_PULSE_COUNT**
+			This uses the number of pulses to generate a fitness. To do this, it compares
+			the calculated frequency from the number of pulses in a second to the target frequency.
+			The closer to the target, the higher the fitness. This fitness function is more 'tolerant'
+			of errors, meaning it assigns greater fitness values to circuits that only have slight errors.
+		**SENSITIVE_PULSE_COUNT**
+			This uses the number of pulses to generate a fitness. To do this, it compares
+			the calculated frequency from the number of pulses in a second to the target frequency.
+			The closer to the target, the higher the fitness. This fitness function is more 'sensitive'
+			of errors, meaning it has an abrupt drop-off in fitness scores even for slight errors.
+
+        Returns
+        -------
+        str
+           The config's selected fitness function from the list of possible modes.
+		"""
+		input = self.get_multi_objective_parameters("FITNESS_FUNC_2")
+		# We're leaving "PULSE_COUNT" for backwards-compatibility
+		# It will use the sensitive function
+		valid_vals = ["VARIANCE", "PULSE_COUNT", "TOLERANT_PULSE_COUNT", "SENSITIVE_PULSE_COUNT", "PULSE_CONSISTENCY", "TONE_DISCRIMINATOR"]
+		self.check_valid_value("multi-objective fitness function 2", input, valid_vals)
+		return input
+	
+	def get_mo_fitness_2_weight(self):
+		"""
+		This returns the weight to use for the second multi-objective fitness function from the config file. 
 
 		Returns
 		-------
 		float
-			The variability weight.
+			The second multi-objective fitness function weight.
 		"""
-		return float(self.get_fitness_parameters("VAR_WEIGHT"))
+		return float(self.get_multi_objective_parameters("FITNESS_2_WEIGHT"))
 	
 	def get_num_samples(self):
 		"""
@@ -746,11 +827,11 @@ class Config:
 		if self.get_fitness_func() == "PULSE_CONSISTENCY" and (self.get_num_passes() * self.get_num_samples()) <= 1:
 			self.__log_error(1, "PULSE_CONSISTENCY function can only be used with multiple samples/passes")
 			exit()
-		# MAP elites can only be used with VARIANCE, COMBINED, and PULSE CONSISTENCY
+		# MAP elites can only be used with VARIANCE, MULTI_OBJECTIVE, and PULSE CONSISTENCY
 		if self.get_selection_type() == "MAP_ELITES":
-			if self.get_fitness_func() not in ["VARIANCE", "COMBINED", "PULSE_CONSISTENCY"]:
+			if self.get_fitness_func() not in ["VARIANCE", "MULTI_OBJECTIVE", "PULSE_CONSISTENCY"]:
 				self.__log_error(1, "MAP_ELITES selection can only be used with the following fitness functions: " +
-				"VARIANCE, COMBINED, PULSE_CONSISTENCY")
+				"VARIANCE, MULTI_OBJECTIVE, PULSE_CONSISTENCY")
 				exit()
 
 	# True if the fitness function counts pulses
@@ -766,14 +847,14 @@ class Config:
 	def get_map_elites_dimension(self):
 		if self.get_fitness_func() in ['PULSE_CONSISTENCY']:
 			return 1
-		elif self.get_fitness_func() in ['VARIANCE', 'COMBINED']:
+		elif self.get_fitness_func() in ['VARIANCE', 'MULTI_OBJECTIVE']:
 			return 2
 
 	def validate_fitness_params(self):
 		self.get_fitness_func()
 
-		if self.get_fitness_func() == "COMBINED":
-			self.get_combined_mode()
+		if self.get_fitness_func() == "MULTI_OBJECTIVE":
+			self.get_multi_objective_mode()
 			self.get_pulse_weight()
 			self.get_var_weight()
 

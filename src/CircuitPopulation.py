@@ -470,7 +470,7 @@ class CircuitPopulation:
         fitness = 0
         if self.__config.get_simulation_mode() == "FULLY_SIM":
             func = self.__config.get_fitness_func()
-            fitness = circuit.evaluate_sim(func == "COMBINED")
+            fitness = circuit.evaluate_sim(func == "MULTI_OBJECTIVE")
         elif self.__config.get_simulation_mode() == "SIM_HARDWARE":
             fitness = circuit.evaluate_sim_hardware()
         else:
@@ -480,8 +480,8 @@ class CircuitPopulation:
                 fitness = circuit.evaluate_pulse_count(record_data = record_data)
             elif func == "VARIANCE":
                 fitness = circuit.evaluate_variance(record_data = record_data)
-            elif func == "COMBINED":
-                fitness = circuit.evaluate_combined(record_data = record_data)
+            elif func == "MULTI_OBJECTIVE":
+                fitness = circuit.evaluate_multi_objective(record_data = record_data)
             elif func == "TONE_DISCRIMINATOR":
                 fitness = circuit.evaluate_tonedisc(record_data = record_data)
         return fitness
