@@ -470,7 +470,7 @@ class CircuitPopulation:
         fitness = 0
         if self.__config.get_simulation_mode() == "FULLY_SIM":
             func = self.__config.get_fitness_func()
-            fitness = circuit.evaluate_sim(func == "MULTI_OBJECTIVE")
+            fitness = circuit.evaluate_sim(func == "COMBINED")
         elif self.__config.get_simulation_mode() == "SIM_HARDWARE":
             fitness = circuit.evaluate_sim_hardware()
         else:
@@ -480,8 +480,8 @@ class CircuitPopulation:
                 fitness = circuit.evaluate_pulse_count(record_data = record_data)
             elif func == "VARIANCE":
                 fitness = circuit.evaluate_variance(record_data = record_data)
-            elif func == "MULTI_OBJECTIVE":
-                fitness = circuit.evaluate_multi_objective(record_data = record_data)
+            elif func == "COMBINED":
+                fitness = circuit.evaluate_combined(record_data = record_data)
             elif func == "TONE_DISCRIMINATOR":
                 fitness = circuit.evaluate_tonedisc(record_data = record_data)
         return fitness
@@ -539,11 +539,11 @@ class CircuitPopulation:
                 # fitness = circuit.get_fitness()
                 fitness = circuit.get_fitness() if is_multi_pass else self.__eval_ckt(circuit)
 
-                # We've got the fitness we're evaluating the circuit off of, so make sure it gets
-                # added to the circuit's file attributes
-                # Only if we are in a sim mode with circuit files
+                # Save off various circuit metrics
                 if self.__config.get_simulation_mode() != 'FULLY_SIM':
                     circuit.set_file_attribute("fitness", str(fitness))
+                    if self.__config.is_pulse_count():
+                        circuit.set_file_attribute("pulse_count", str(circuit.get_pulses()))
 
                 # Commented out for now while we test
                 # Pretty sure this was originally for pulse count only, leaving it commented out since things are working right now
