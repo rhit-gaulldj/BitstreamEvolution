@@ -61,9 +61,10 @@ def run():
         ax2.set_ylim(bottom=0)
 
         ax3.clear()
-        ax3.hist2d(ts,xs,bins=HEATMAP_BINS, cmap=heatmap_color)
+        im = ax3.hist2d(ts,xs,bins=HEATMAP_BINS, cmap=heatmap_color)
         ax3.tick_params(axis='y', labelcolor=accent_color)
         ax3.set_ylim(bottom=0)
+        fig.colorbar(im[3], ax=ax3)
         
         #pulses/mean voltage
         ax4.clear()
@@ -296,7 +297,7 @@ def run():
         time_axes[0].plot(time_points, data[0], color=accent_color)
         time_axes[0].set(xlabel="Trial", ylabel="Fitness", title="Fitness vs Temperature and Humidity over Time")
         time_axes[3].plot(time_points, data[1], color=accent_color)
-        time_axes[3].set(xlabel="Trial", ylabel="Data 2", title="Data 2 vs Temperature and Humidity over Time")
+        time_axes[3].set(xlabel="Trial", ylabel="Pulse Count", title="Pulse Count vs Temperature and Humidity over Time", xlim=(0, max(time_points)))
         # time_axes[6].plot(time_points, data[4], color=accent_color)
         # time_axes[6].set(xlabel="Trial", ylabel="Standard Deviation of Fitness")
         # time_axes[9].plot(time_points, data[5], color=accent_color)
@@ -330,10 +331,13 @@ def run():
         yellow = "goldenrod"
         plot = lambda fig, function : function(0)
     else:
-        style.use('dark_background')
-        accent_color = "white"
-        heatmap_color = 'viridis'
-        yellow = "yellow"
+        # style.use('dark_background')
+        # accent_color = "white"
+        # heatmap_color = 'viridis'
+        # yellow = "yellow"
+        accent_color = "black"
+        heatmap_color = 'Blues'
+        yellow = "goldenrod"
         plot = lambda fig, function : animation.FuncAnimation(fig, function, interval=FRAME_INTERVAL, cache_frame_data=False)
 
     if not exists(plots_dir):
@@ -380,8 +384,10 @@ def run():
             time_axes.append(host)
             for j in range(2):
                 par = host.get_aux_axes(viewlim_mode=None, sharex=host)
+                par.tick_params(top = False) 
                 time_axes.append(par)
-        
+            host.tick_params(top = False) 
+
         ani5= animation.FuncAnimation(fig5, animate_change_over_time, interval=FRAME_INTERVAL)
 
 

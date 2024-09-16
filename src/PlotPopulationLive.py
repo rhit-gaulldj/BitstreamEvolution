@@ -19,7 +19,7 @@ plots_dir = config.get_plots_directory()
 plot = lambda fig, ax, function : animation.FuncAnimation(fig, function, interval=FRAME_INTERVAL, cache_frame_data=False, fargs=(fig,ax))
 
 def plot_population_time_dynamics(i, fig, time_ax):
-    data = open('workspace/bitsteam_avg.log','r').read()
+    data = open('workspace/bitstream_avg.log','r').read()
     lines = data.split('\n')
 
     num_rows = 3
@@ -37,21 +37,24 @@ def plot_population_time_dynamics(i, fig, time_ax):
             d=line[index+1:]
             l = []
             for i in range(96): #iterate through logic tiles
-                cur_sum = 0
+                cur_sum = 0.0
                 for j in range(num_cols*num_rows): #iterate through bits in logic tile
                     cur_sum += ord(d[num_cols*num_rows*i + j]) - 32
-                l.append(cur_sum)
+                l.append(cur_sum / (num_cols*num_rows*config.get_population_size()))
             image.append(l)
 
+    print(image)
     image = np.array(image)
+    print(image)
     time_ax.clear()                         
-    time_ax.imshow(image, cmap="Purples", vmin=0, vmax=num_cols*num_rows*config.get_population_size())
+    image_ax = time_ax.imshow(image, cmap="Purples", vmin=0, vmax=1)
     time_ax.set_yticks(np.arange(len(gens)), labels=gens)
     labels = time_ax.yaxis.get_ticklabels()
     for i in range(len(labels)):
         if i % 10 != 0:
             labels[i].set_visible(False)
-    time_ax.set(ylabel='Generation', xlabel='Logic Tile (Sum of Bits)', title='Sum of Bits in Logic Tiles over Time')
+    time_ax.set(ylabel='Generation', xlabel='Logic Tile', title='Percentage of 1\'s in Logic Tiles across the Population')
+    plt.colorbar(mappable=image_ax, ax=time_ax, orientation='horizontal')
 
     if(config.get_save_plots()):
         fig.savefig(plots_dir.joinpath("avg_bitstream_over_time.png"))
